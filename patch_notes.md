@@ -28,3 +28,6 @@ Beta:
   v1.0.3:
     Removed debugging printf.
     Updated number of bombs (increase).
+
+  v1.0.4:
+    Added makefile.
