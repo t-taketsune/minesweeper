@@ -9,7 +9,7 @@
 #define EMPTY 0
 #define BOMB 10
 #define SIZE 20
-#define NUMBER_OF_BOMBS 10
+#define NUMBER_OF_BOMBS 20
 
 static const char open_cmd[] = "open";
 static const char mark_cmd[] = "mark";
@@ -138,7 +138,6 @@ void send(int i, int j, cell(*field)[SIZE+2], int *n_marks, coor bombs[], int *e
 }
 
 int main() {
-    printf("%s %s %s", mark_cmd, open_cmd, unmk_cmd);
     cell field[SIZE+2][SIZE+2];
     coor bomb_coords[NUMBER_OF_BOMBS];
     int i, j, end=0, start_i, start_j, n_marks=0;
