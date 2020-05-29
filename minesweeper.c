@@ -8,8 +8,8 @@
 #define OPEN ' '
 #define EMPTY 0
 #define BOMB 10
-#define SIZE 10
-#define NUMBER_OF_BOMBS 2
+#define SIZE 20
+#define NUMBER_OF_BOMBS 10
 
 static const char open_cmd[] = "open";
 static const char mark_cmd[] = "mark";
