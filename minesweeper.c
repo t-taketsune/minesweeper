@@ -8,17 +8,22 @@
 #define OPEN ' '
 #define EMPTY 0
 #define BOMB 10
-#define SIZE 20
-#define NUMBER_OF_BOMBS 20
+#define SIZE 10
+#define NUMBER_OF_BOMBS 2
 
 static const char open_cmd[] = "open";
 static const char mark_cmd[] = "mark";
 static const char unmk_cmd[] = "unmk";
+static const char send_cmd[] = "send";
 
 typedef struct {
     int real;
     char shown;
 } cell;
+
+typedef struct {
+    int x, y;
+} coor;
 
 char int_to_char(int x) {
     return (char) (x + 48);
@@ -89,10 +94,54 @@ void open_field(cell(*field)[SIZE+2], int i, int j) {
     }
 }
 
+void open(int i, int j, cell(*field)[SIZE+2], int *end) {
+    if (field[i][j].real == BOMB) {
+        printf("You have lost the game.");
+        *end = 1;
+        return;
+    }
+    open_field(field, i, j);
+}
+
+void mark(int i, int j, cell(*field)[SIZE+2], int *n_marks) {
+    if (field[i][j].shown == MARKED) {
+        printf("This cell is already marked.");
+        return;
+    }
+    field[i][j].shown = MARKED;
+    (*n_marks)++;
+}
+
+void unmark(int i, int j, cell(*field)[SIZE+2], int *n_marks) {
+    if (field[i][j].shown != MARKED) {
+        printf("This cell is not marked.");
+        return;
+    }
+    field[i][j].shown = UNKNOWN;
+    (*n_marks)--;
+}
+
+void send(int i, int j, cell(*field)[SIZE+2], int *n_marks, coor bombs[], int *end) {
+    if ((*n_marks) != NUMBER_OF_BOMBS) {
+        printf("Your number of marks is not equal to the number of bombs. Recheck.");
+        return;
+    }
+    for (int aux=0; aux!=NUMBER_OF_BOMBS; aux++) {
+        if (field[bombs[aux].x][bombs[aux].y].shown != MARKED) {
+            printf("Your marks are not correct. Recheck.");
+            return;
+        }
+    }
+    printf("You have won!\n");
+    *end = 1;
+    return;
+}
+
 int main() {
     printf("%s %s %s", mark_cmd, open_cmd, unmk_cmd);
     cell field[SIZE+2][SIZE+2];
-    int i, j, end=0, start_i, start_j;
+    coor bomb_coords[NUMBER_OF_BOMBS];
+    int i, j, end=0, start_i, start_j, n_marks=0;
     char cmd[5]="open";
     for (i=0; i!=SIZE+2; i++)
         for (j=0; j!=SIZE+2; j++) {
@@ -108,6 +157,8 @@ int main() {
         if (field[i][j].real == EMPTY && !near_start(i, j, start_i, start_j)) {
             field[i][j].real = BOMB;
             aux_fill(field, i, j);
+            bomb_coords[aux].x = i;
+            bomb_coords[aux].y = j;
         }
         else {
             aux--;
@@ -115,19 +166,18 @@ int main() {
     }
     i = start_i;
     j = start_j;
+    open(i, j, field, &end);
     while (!end) {
-        if (field[i][j].real == BOMB && strcmp(cmd, open_cmd) == 0) {
-            printf("You lost.\n");
-            end = 1;
-            break;
-        } else if (strcmp(cmd, mark_cmd) == 0) {
-            field[i][j].shown = MARKED;
-        } else if (field[i][j].real != EMPTY) {
-            field[i][j].shown = int_to_char(field[i][j].real);
-        } else {
-            open_field(field, i, j);
-        }
         print_field(field);
         scanf("%d %d %s", &i, &j, cmd);
+        if (strcmp(cmd, open_cmd) == 0) {
+            open(i, j, field, &end);
+        } else if (strcmp(cmd, mark_cmd) == 0) {
+            mark(i, j, field, &n_marks);
+        } else if (strcmp(cmd, unmk_cmd) == 0) {
+            unmark(i, j, field, &n_marks);
+        } else if (strcmp(cmd, send_cmd) == 0) {
+            send(i, j, field, &n_marks, bomb_coords, &end);
+        }
     }
 }
