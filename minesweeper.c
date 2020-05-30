@@ -6,6 +6,7 @@
 #define UNKNOWN 'X'
 #define MARKED 'O'
 #define OPEN ' '
+#define INVALID -1
 #define EMPTY 0
 #define BOMB 10
 #define SIZE 20
@@ -25,12 +26,34 @@ typedef struct {
     int x, y;
 } coor;
 
-char int_to_char(int x) {
-    return (char) (x + 48);
+typedef struct {
+    int row, col, n_bombs;
+    cell** field;
+    coor* bomb_coords;
+} field;
+
+/* CELL AUXILIARY FUNCTIONS */
+int valid_pos(int i, int j, int row, int col) {
+    return (i>=0 && i<col && j>=0 && j<col) ? 1 : 0;
 }
 
-int valid_pos(int i, int j) {
-    return (i>=0 && i<SIZE+1 && j>=0 && j<SIZE+1) ? 1 : 0;
+int aux_fill_check(int value) {
+    return (value == INVALID) ? 0 : 1;
+}
+
+void aux_fill(cell** field, int i, int j) {
+    field[i-1][j-1].real += aux_fill_check(field[i-1][j-1].real);
+    field[i][j-1].real += aux_fill_check(field[i][j-1].real);
+    field[i+1][j-1].real += aux_fill_check(field[i+1][j-1].real);
+    field[i-1][j+1].real += aux_fill_check(field[i-1][j+1].real);
+    field[i][j+1].real += aux_fill_check(field[i][j+1].real);
+    field[i+1][j+1].real += aux_fill_check(field[i+1][j+1].real);
+    field[i-1][j].real += aux_fill_check(field[i-1][j].real);
+    field[i+1][j].real += aux_fill_check(field[i+1][j].real);
+}
+
+char int_to_char(int x) {
+    return (char) (x + 48);
 }
 
 int near_start(int i, int j, int s_i, int s_j) {
@@ -39,20 +62,70 @@ int near_start(int i, int j, int s_i, int s_j) {
     return 0;
 }
 
-void aux_fill(cell(*field)[SIZE+2], int i, int j) {
-    field[i-1][j-1].real+=1;
-    field[i][j-1].real+=1;
-    field[i+1][j-1].real+=1;
-    field[i-1][j+1].real+=1;
-    field[i][j+1].real+=1;
-    field[i+1][j+1].real+=1;
-    field[i-1][j].real+=1;
-    field[i+1][j].real+=1;
+/* FIELD ALLOCATION FUNCTIONS */
+int alloc_field(field* f) {
+    f->bomb_coords = malloc(sizeof(coor)*f->n_bombs);
+    if (!f->bomb_coords)
+        return 0;
+    f->field = malloc(sizeof(cell*)*f->col);
+    if (!f->field)
+        return 0;
+    int aux;
+    for (aux=0; aux!=f->col; aux++) {
+        f->field[aux] = malloc(sizeof(cell)*f->row);
+        if (!f->field)
+            return 0;
+    }
+    return 1;
 }
 
-void print_field(cell (*field)[SIZE+2]) {
+void destroy_field(field* f) {
+    free(f->bomb_coords);
+    int i, j;
+    for (i=0; i!=f->row; i++) {
+        for (j=0; j!=f->col; j++)
+            free(&f->field[i][j]);
+        free(&f->field[i]);
+    }
+}
+
+/* FIELD INITIALIZATION FUNCTIONS */
+void init_field(field* f) {
+    int i, j;
+    for (i=0; i!=f->row; i++) {
+        f->field[i][0].real = INVALID;
+        f->field[0][i].real = INVALID;
+        f->field[i][f->col-1].real = INVALID;
+        f->field[f->row-1][i].real = INVALID;
+    }
+    for (i=1; i!=f->row-1; i++)
+        for (j=1; j!=f->col-1; j++) {
+            f->field[i][j].real = EMPTY;
+            f->field[i][j].shown = UNKNOWN;
+        }
+}
+
+void spread_bombs(field* f, int start_i, int start_j) {
+    srand(time(NULL));
+    int aux=0, i, j;
+    while (aux!=f->n_bombs) {
+        i = (rand()%(f->row-2))+1;
+        j = (rand()%(f->col-2))+1;
+        if (f->field[i][j].real == EMPTY && !near_start(i, j, start_i, start_j)) {
+            f->field[i][j].real = BOMB;
+            aux_fill(f->field, i, j);
+            f->bomb_coords[aux].x = i;
+            f->bomb_coords[aux].y = j;
+            aux++;
+        }
+    }
+}
+
+/* FIELD AUXILIARY FUNCTIONS */
+void print_field(field* f) {
     printf("\n  01");
-    for (int aux=2; aux!=SIZE+2; aux++) {
+    int aux, i, j;
+    for (aux=2; aux!=f->col-1; aux++) {
         if (aux%5 == 0) {
             printf("%02d", aux);
         } else if (aux+1%5 != 0) {
@@ -60,74 +133,72 @@ void print_field(cell (*field)[SIZE+2]) {
         }
     }
     printf("\n01 ");
-    for (int aux=1; aux!=SIZE+1; aux++)
-        printf("%c ", field[1][aux].shown);
+    for (aux=1; aux!=f->row-1; aux++)
+        printf("%c ", f->field[1][aux].shown);
     printf("\n");
-    for (int i=2; i!=SIZE+1; i++) {
-        i%5 == 0 ? printf("%02d ", i) : printf("   ");
-        for (int j=1; j!=SIZE+1; j++)
-            printf("%c ", field[i][j].shown);
+    for (i=2; i!=f->row-1; i++) {
+        if (i%5 == 0) {
+            printf("%02d ", i);
+        } else {
+            printf("   ");
+        }
+        for (j=1; j!=f->col-1; j++)
+            printf("%c ", f->field[i][j].shown);
         printf("\n");
     }
 }
 
-void open_field(cell(*field)[SIZE+2], int i, int j) {
-    if (field[i][j].shown == field[i][j].real || field[i][j].shown == MARKED) {
+void open_field(field* f, int i, int j) {
+    if (f->field[i][j].real == INVALID || f->field[i][j].shown == f->field[i][j].real || f->field[i][j].shown == MARKED) {
         return;
     }
-    if (field[i][j].real != EMPTY) {
-        field[i][j].shown = int_to_char(field[i][j].real);
+    if (f->field[i][j].real != EMPTY) {
+        f->field[i][j].shown = int_to_char(f->field[i][j].real);
         return;
     }
-    field[i][j].shown = field[i][j].real;
-    if (valid_pos(i + 1, j)) {
-        open_field(field, i + 1, j);
-    }
-    if (valid_pos(i - 1, j)) {
-        open_field(field, i - 1, j);
-    }
-    if (valid_pos(i, j + 1)) {
-        open_field(field, i, j + 1);
-    }
-    if (valid_pos(i, j - 1)) {
-        open_field(field, i, j - 1);
-    }
+    f->field[i][j].shown = f->field[i][j].real;
+    open_field(f, i + 1, j);
+    open_field(f, i - 1, j);
+    open_field(f, i, j + 1);
+    open_field(f, i, j - 1);
 }
 
-void open(int i, int j, cell(*field)[SIZE+2], int *end) {
-    if (field[i][j].real == BOMB) {
+/* FIELD COMMAND FUNCTIONS */
+void open(int i, int j, field* f, int *end) {
+    if (f->field[i][j].real == BOMB) {
         printf("You have lost the game.");
         *end = 1;
         return;
     }
-    open_field(field, i, j);
+    open_field(f, i, j);
 }
 
-void mark(int i, int j, cell(*field)[SIZE+2], int *n_marks) {
-    if (field[i][j].shown == MARKED) {
+void mark(int i, int j, field* f, int *n_marks) {
+    if (f->field[i][j].shown == MARKED) {
         printf("This cell is already marked.");
         return;
     }
-    field[i][j].shown = MARKED;
+    f->field[i][j].shown = MARKED;
     (*n_marks)++;
 }
 
-void unmark(int i, int j, cell(*field)[SIZE+2], int *n_marks) {
-    if (field[i][j].shown != MARKED) {
+void unmark(int i, int j, field* f, int *n_marks) {
+    if (f->field[i][j].shown != MARKED) {
         printf("This cell is not marked.");
         return;
     }
-    field[i][j].shown = UNKNOWN;
+    f->field[i][j].shown = UNKNOWN;
     (*n_marks)--;
 }
 
-void send(int i, int j, cell(*field)[SIZE+2], int *n_marks, coor bombs[], int *end) {
-    if ((*n_marks) != NUMBER_OF_BOMBS) {
+void send(field* f, int n_marks, int *end) {
+    if (n_marks != NUMBER_OF_BOMBS) {
         printf("Your number of marks is not equal to the number of bombs. Recheck.");
         return;
     }
-    for (int aux=0; aux!=NUMBER_OF_BOMBS; aux++) {
-        if (field[bombs[aux].x][bombs[aux].y].shown != MARKED) {
+    int aux;
+    for (aux=0; aux!=NUMBER_OF_BOMBS; aux++) {
+        if (f->field[f->bomb_coords[aux].x][f->bomb_coords[aux].y].shown != MARKED) {
             printf("Your marks are not correct. Recheck.");
             return;
         }
@@ -137,46 +208,51 @@ void send(int i, int j, cell(*field)[SIZE+2], int *n_marks, coor bombs[], int *e
     return;
 }
 
-int main() {
-    cell field[SIZE+2][SIZE+2];
-    coor bomb_coords[NUMBER_OF_BOMBS];
-    int i, j, end=0, start_i, start_j, n_marks=0;
-    char cmd[5]="open";
-    for (i=0; i!=SIZE+2; i++)
-        for (j=0; j!=SIZE+2; j++) {
-            field[i][j].real = EMPTY;
-            field[i][j].shown = UNKNOWN;
-        }
-    srand(time(NULL));
-    print_field(field);
-    scanf("%d %d", &start_i, &start_j);
-    for (int aux=0; aux!=NUMBER_OF_BOMBS; aux++) {
-        i = (rand()%SIZE)+1;
-        j = (rand()%SIZE)+1;
-        if (field[i][j].real == EMPTY && !near_start(i, j, start_i, start_j)) {
-            field[i][j].real = BOMB;
-            aux_fill(field, i, j);
-            bomb_coords[aux].x = i;
-            bomb_coords[aux].y = j;
-        }
-        else {
-            aux--;
-        }
+void init_game(field* f) {
+    /* Creating field. */
+    printf("\nInform the desired field size and number of bombs. (rows, cols, bombs).\n");
+    scanf("%d %d %d", &f->row, &f->col, &f->n_bombs);
+    f->row+=2;
+    f->col+=2;
+    if (!alloc_field(f)) {
+        printf("Could not allocate memory for the game. Aborting.");
+        destroy_field(f);
+        exit(0);
     }
-    i = start_i;
-    j = start_j;
-    open(i, j, field, &end);
+    /* Initializing values. */
+    init_field(f);
+    /* Printing field. Taking first open cell.*/
+    print_field(f);
+    printf("\nInform the position to start the game. (row, col)\n");
+    int start_i, start_j;
+    scanf("%d %d", &start_i, &start_j);
+    while(!valid_pos(start_i, start_j, f->row-1, f->col-1)) {
+        printf("\nInvalid position.\n");
+        scanf("%d %d", &start_i, &start_j);
+    }
+    /* Spreading bombs. */
+    spread_bombs(f, start_i, start_j);
+    /* Opening field. */
+    open_field(f, start_i, start_j);
+}
+
+int main() {
+    field game;
+    init_game(&game);
+    int end = 0, n_marks = 0, i, j;
+    char cmd[5];
     while (!end) {
-        print_field(field);
+        print_field(&game);
         scanf("%d %d %s", &i, &j, cmd);
         if (strcmp(cmd, open_cmd) == 0) {
-            open(i, j, field, &end);
+            open(i, j, &game, &end);
         } else if (strcmp(cmd, mark_cmd) == 0) {
-            mark(i, j, field, &n_marks);
+            mark(i, j, &game, &n_marks);
         } else if (strcmp(cmd, unmk_cmd) == 0) {
-            unmark(i, j, field, &n_marks);
+            unmark(i, j, &game, &n_marks);
         } else if (strcmp(cmd, send_cmd) == 0) {
-            send(i, j, field, &n_marks, bomb_coords, &end);
+            send(&game, n_marks, &end);
         }
     }
+    return 0;
 }

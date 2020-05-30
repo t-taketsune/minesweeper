@@ -31,3 +31,10 @@ Beta:
 
   v1.0.4:
     Added makefile.
+
+  v1.2:
+    Created structure for the field.
+    Modified handling of positions outside the game grid via assigning an invalid value.
+    Refactored code into smaller functions.
+    Organized code in sequential bits of functions.
+    Added the ability to choose field size and number of bombs.
