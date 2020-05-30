@@ -38,3 +38,8 @@ Beta:
     Refactored code into smaller functions.
     Organized code in sequential bits of functions.
     Added the ability to choose field size and number of bombs.
+
+  v1.3:
+    Added commands help and quit.
+    Reversed order of game arguments.
+    Minor code refactoring.

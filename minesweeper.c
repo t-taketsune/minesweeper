@@ -16,6 +16,8 @@ static const char open_cmd[] = "open";
 static const char mark_cmd[] = "mark";
 static const char unmk_cmd[] = "unmk";
 static const char send_cmd[] = "send";
+static const char help_cmd[] = "help";
+static const char quit_cmd[] = "quit";
 
 typedef struct {
     int real;
@@ -164,31 +166,40 @@ void open_field(field* f, int i, int j) {
 }
 
 /* FIELD COMMAND FUNCTIONS */
-void open(int i, int j, field* f, int *end) {
+void open(field* f, int *end) {
+    int i, j;
+    scanf("%d %d", &i, &j);
     if (f->field[i][j].real == BOMB) {
-        printf("You have lost the game.");
+        printf("You have lost the game.\n");
         *end = 1;
         return;
     }
     open_field(f, i, j);
+    print_field(f);
 }
 
-void mark(int i, int j, field* f, int *n_marks) {
+void mark(field* f, int *n_marks) {
+    int i, j;
+    scanf("%d %d", &i, &j);
     if (f->field[i][j].shown == MARKED) {
-        printf("This cell is already marked.");
+        printf("This cell is already marked.\n");
         return;
     }
     f->field[i][j].shown = MARKED;
     (*n_marks)++;
+    print_field(f);
 }
 
-void unmark(int i, int j, field* f, int *n_marks) {
+void unmark(field* f, int *n_marks) {
+    int i, j;
+    scanf("%d %d", &i, &j);
     if (f->field[i][j].shown != MARKED) {
-        printf("This cell is not marked.");
+        printf("This cell is not marked.\n");
         return;
     }
     f->field[i][j].shown = UNKNOWN;
     (*n_marks)--;
+    print_field(f);
 }
 
 void send(field* f, int n_marks, int *end) {
@@ -239,19 +250,33 @@ void init_game(field* f) {
 int main() {
     field game;
     init_game(&game);
-    int end = 0, n_marks = 0, i, j;
+    int end = 0, n_marks = 0;
     char cmd[5];
+    print_field(&game);
     while (!end) {
-        print_field(&game);
-        scanf("%d %d %s", &i, &j, cmd);
+        scanf("%s", cmd);
         if (strcmp(cmd, open_cmd) == 0) {
-            open(i, j, &game, &end);
+            open(&game, &end);
         } else if (strcmp(cmd, mark_cmd) == 0) {
-            mark(i, j, &game, &n_marks);
+            mark(&game, &n_marks);
         } else if (strcmp(cmd, unmk_cmd) == 0) {
-            unmark(i, j, &game, &n_marks);
+            unmark(&game, &n_marks);
         } else if (strcmp(cmd, send_cmd) == 0) {
             send(&game, n_marks, &end);
+        } else if (strcmp(cmd, help_cmd) == 0) {
+            printf("Available commands:\n"
+            "open: opens the content inside a cell.\n"
+            "mark: flags a cell as a potential bomb.\n"
+            "unmk: removes the flag from previously marked cell.\n"
+            "send: checks if all bombs are marked, which is the winning condition.\n"
+            "help: displays this message.\n"
+            "quit: exits the game.\n");
+        } else if (strcmp(cmd, quit_cmd) == 0) {
+            destroy_field(&game);
+            printf("Exiting.\n");
+            exit(0);
+        } else {
+            printf("Unknown command. 0 0 help for a list of commands.\n");
         }
     }
     return 0;
