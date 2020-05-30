@@ -13,7 +13,7 @@ Alpha:
     Added simple command handler.
 
 Beta:
-  v1.0.0:
+  v1.0:
     Updated size and number of bombs (decrease).
     Added structure for coordinate.
     Added send command to check for the winning condition.
@@ -46,3 +46,6 @@ Beta:
 
   v1.3.1:
     Moved help and quit to own functions.
+
+  v1.3.2:
+    Minor edit to README.
