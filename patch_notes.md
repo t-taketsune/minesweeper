@@ -43,3 +43,6 @@ Beta:
     Added commands help and quit.
     Reversed order of game arguments.
     Minor code refactoring.
+
+  v1.3.1:
+    Moved help and quit to own functions.

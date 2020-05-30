@@ -208,15 +208,30 @@ void send(field* f, int n_marks, int *end) {
         return;
     }
     int aux;
-    for (aux=0; aux!=NUMBER_OF_BOMBS; aux++) {
+    for (aux=0; aux!=NUMBER_OF_BOMBS; aux++)
         if (f->field[f->bomb_coords[aux].x][f->bomb_coords[aux].y].shown != MARKED) {
             printf("Your marks are not correct. Recheck.");
             return;
         }
-    }
     printf("You have won!\n");
     *end = 1;
     return;
+}
+
+void help() {
+    printf("Available commands:\n"
+        "open: opens the content inside a cell.\n"
+        "mark: flags a cell as a potential bomb.\n"
+        "unmk: removes the flag from previously marked cell.\n"
+        "send: checks if all bombs are marked, which is the winning condition.\n"
+        "help: displays this message.\n"
+        "quit: exits the game.\n");
+}
+
+void quit(field* f) {
+    destroy_field(f);
+    printf("Exiting.\n");
+    exit(0);
 }
 
 void init_game(field* f) {
@@ -264,17 +279,9 @@ int main() {
         } else if (strcmp(cmd, send_cmd) == 0) {
             send(&game, n_marks, &end);
         } else if (strcmp(cmd, help_cmd) == 0) {
-            printf("Available commands:\n"
-            "open: opens the content inside a cell.\n"
-            "mark: flags a cell as a potential bomb.\n"
-            "unmk: removes the flag from previously marked cell.\n"
-            "send: checks if all bombs are marked, which is the winning condition.\n"
-            "help: displays this message.\n"
-            "quit: exits the game.\n");
+            help();
         } else if (strcmp(cmd, quit_cmd) == 0) {
-            destroy_field(&game);
-            printf("Exiting.\n");
-            exit(0);
+            quit(&game);
         } else {
             printf("Unknown command. 0 0 help for a list of commands.\n");
         }
