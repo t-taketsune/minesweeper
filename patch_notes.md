@@ -49,3 +49,8 @@ Beta:
 
   v1.3.2:
     Minor edit to README.
+
+Final:
+  v1.0:
+    Split code into various files.
+    Moving interface to ncurses lib.
