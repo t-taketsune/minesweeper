@@ -54,3 +54,6 @@ Final:
   v1.0:
     Split code into various files.
     Moving interface to ncurses lib.
+
+  v1.0.1:
+    Makefile update.

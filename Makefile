@@ -6,16 +6,16 @@ default: all
 
 all: mine
 
-mine: minesweeper.c commands aux init
+mine: minesweeper.c commands.o aux_field.o init.o
 	$(CC) minesweeper.c commands.o aux_field.o init.o -o mine $(CFLAGS) $(CLIBS)
 
-aux: aux_field.c
+aux_field.o: aux_field.c
 	$(CC) aux_field.c -c $(CFLAGS) $(CLIBS)
 
-commands: commands.c
+commands.o: commands.c
 	$(CC) commands.c -c $(CFLAGS) $(CLIBS)
 
-init: init.c
+init.o: init.c
 	$(CC) init.c -c $(CFLAGS) $(CLIBS)
 
 run: mine
